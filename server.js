@@ -12,66 +12,67 @@
 ********************************************************************************/ 
 
 
-var express = require("express");
-var path = require("path");
-var blog = require("./blog-service");
-var app = express();
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 8080;
 
-var HTTP_PORT = process.env.PORT || 8080;
+app.use(express.static('public'));
 
-// call this function after the http server starts listening for requests
-function onHttpStart() {
-    console.log("Express http server listening on: " + HTTP_PORT);
-  }
-   
-  //using a static file
-  app.use(express.static('public'));
-  
-  // setup a 'route' to redirect to other URL
-  app.get("/", function(req,res){
-      res.redirect('/about');
+app.get('/', (req, res) => {
+  res.redirect('/about');
+});
+
+app.get('/about', (req, res) => {
+  res.sendFile(__dirname + '/views/about.html');
+});
+
+storeService.initialize()
+  .then(() => {
+    const server = app.listen(process.env.PORT || 8080, () => {
+      const port = server.address().port;
+      console.log(`Express http server listening on port ${port}`);
+    });
+  })
+  .catch(error => {
+    console.error(error);
   });
-  
-  // setup another route to listen on /about
-  app.get("/about", function(req,res){
-      res.sendFile(path.join(__dirname,"/views/about.html"));
-  });
 
-  // setup another route to listen on /blog
-  app.get("/Blog", function(req,res){
-      blog.getPublishPosts().then(posts => {
-        res.send(posts)
-      }).catch(err=>{
-        res.send({err})
+
+
+  app.get('/shop', (req, res) => {
+    storeService.getPublishedItems()
+      .then(data => {
+        res.json(data);
       })
+      .catch(err => {
+        res.status(500).json({ message: err });
+      });
   });
   
-  // setup another route to listen on /posts
-  app.get("/Posts", function(req,res){
-    blog.getAllPosts().then(posts => {
-        res.send(posts)
-    }).catch(err =>{
-        res.send(err)
-    })
-  });
-  
-  // setup another route to listen on /Categories
-  app.get("/Categories", function(req,res){
-    blog.getCategories().then(categories =>{
-        req.send(categories)
-    }).catch(err=>{
-        res.send(err)
-    })
-  });
 
-  // setup error page
-  app.use((req, res) => {
-    res.status(404).send("Page Not Found")
-  })
+  app.get('/items', (req, res) => {
+    storeService.getAllItems()
+      .then(data => {
+        res.json(data);
+      })
+      .catch(err => {
+        res.status(500).json({ message: err });
+      });
+  });
   
-  // setup http server to listen on HTTP_PORT
-  blog.initialize().then(() =>{
-      app.listen(HTTP_PORT, onHttpStart);
-  }).catch(err=>{
-    console.log("error in promise")
-  })
+
+  app.get('/categories', (req, res) => {
+    storeService.getCategories()
+      .then(data => {
+        res.json(data);
+      })
+      .catch(err => {
+        res.status(500).json({ message: err });
+      });
+  });
+  
+
+// Route for unmatched URLs
+app.use((req, res) => {
+  res.status(404).json({ message: 'Page Not Found' });
+});
